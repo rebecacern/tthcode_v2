@@ -136,7 +136,7 @@ void code_gen(int nsel=0, bool silent=0){
   if (!silent) cout << "[Info:] Number of raw events: " << tree->GetEntries() << endl;
   // loop over events 
   //for(int iEvent = 0; iEvent < 100000; iEvent++){
-   for(int iEvent = 0; iEvent < tree->GetEntries(); iEvent++){
+  for(int iEvent = 0; iEvent < tree->GetEntries(); iEvent++){
     Long64_t tentry = tree->LoadTree(iEvent);
     
     //Point to the proper entry
@@ -176,17 +176,17 @@ void code_gen(int nsel=0, bool silent=0){
 	  if (mum.pdgID == 6 && genpar.child0 != 9999 && genpar.child1 != 9999) {
 	    indext = genpar.mother;
 	    indexWt = i; 
-	}
-      } 
-     } else if (genpar.pdgID == -24){
+	  }
+	} 
+      } else if (genpar.pdgID == -24){
         if (genpar.mother != 9999){
           ttH::GenParticle mum = pruned_genParticles->at(genpar.mother);
 	  if (mum.pdgID == -6 && genpar.child0 != 9999 && genpar.child1 != 9999) {
 	    indexat = genpar.mother;
 	    indexWat = i; 
-	}
-      } 
-     }
+	  }
+	} 
+      }
     } 
     
     if (nsel ==0 && !HWW) continue;
@@ -330,7 +330,7 @@ void code_gen(int nsel=0, bool silent=0){
 
     if (mindr <= 0.3) dRcuts[2]=dRcuts[2]+weight;
      
-   // cout << iEvent << " done" << endl;
+    // cout << iEvent << " done" << endl;
     
   }
   
