@@ -13,8 +13,8 @@ void code_gen(int nsel=0, bool silent=0){
   
   char plotName[300];
   sprintf(plotName,"test");
+  if (nsel == 11) {sprintf(plotName,"ttH125");}
   if (nsel == 0) {sprintf(plotName,"ttH125new");}
-  if (nsel == 1) {sprintf(plotName,"TTJets");}
   
   
   char myRootFile[300];
@@ -61,8 +61,8 @@ void code_gen(int nsel=0, bool silent=0){
   
   cout <<"[Info:] You are running GEN code over " << plotName << endl;
   char newRootFile[300];
-  sprintf(newRootFile,"results/new_100k.root");
-  TFile f_var(newRootFile, "RECREATE");
+  sprintf(newRootFile,"results/gen_histos.root");
+  TFile f_var(newRootFile, "UPDATE");
   if(!silent){
     std::cout << "[Info:] results root file named " << newRootFile << std::endl;
   }
@@ -131,7 +131,6 @@ void code_gen(int nsel=0, bool silent=0){
   double weight = 1;
   int nused = 0;
   int nHWW = 0;
-  int dRcuts[4] = {0, 0, 0, 0};
   
   if (!silent) cout << "[Info:] Number of raw events: " << tree->GetEntries() << endl;
   // loop over events 
@@ -144,7 +143,6 @@ void code_gen(int nsel=0, bool silent=0){
     b_pruned_genParticles->GetEntry(tentry);
   
     nused++; 
-
     histo->Fill(0., weight);
     
     if (nsel ==0 && !higgs_decay) continue;
@@ -153,8 +151,6 @@ void code_gen(int nsel=0, bool silent=0){
               
     bool HWW = false; 
     int indexH = -1;
-    int indext = -1;
-    int indexat = -1;
     int indexWt = -1;
     int indexWat = -1;
     for (unsigned int i = 0; i < pruned_genParticles->size(); i++){
@@ -174,16 +170,14 @@ void code_gen(int nsel=0, bool silent=0){
         if (genpar.mother != 9999){
           ttH::GenParticle mum = pruned_genParticles->at(genpar.mother);
 	  if (mum.pdgID == 6 && genpar.child0 != 9999 && genpar.child1 != 9999) {
-	    indext = genpar.mother;
-	    indexWt = i; 
+	    indexWt = i;
 	  }
 	} 
       } else if (genpar.pdgID == -24){
         if (genpar.mother != 9999){
           ttH::GenParticle mum = pruned_genParticles->at(genpar.mother);
 	  if (mum.pdgID == -6 && genpar.child0 != 9999 && genpar.child1 != 9999) {
-	    indexat = genpar.mother;
-	    indexWat = i; 
+	    indexWat = i;
 	  }
 	} 
       }
@@ -195,9 +189,11 @@ void code_gen(int nsel=0, bool silent=0){
     nHWW++;
     
     //selecting full legacy completed kids0
+    
     if ((pruned_genParticles->at(indexH)).child0 == 9999) continue;
     if ((pruned_genParticles->at(indexH)).child1 == 9999) continue;
     if (indexWt == -1 || indexWat == -1) continue;
+
     
     //selecting full legacy completed grandkids
     if ((pruned_genParticles->at((pruned_genParticles->at(indexH)).child0)).child0 == 9999) continue;   
@@ -211,7 +207,7 @@ void code_gen(int nsel=0, bool silent=0){
     if (pruned_genParticles->at(indexWat).child1 == 9999) continue;
     histo->Fill(3., weight);
     
- 
+
     //selecting semileptonic HWW
     int nleptons = 0;
     int kid0 = (pruned_genParticles->at((pruned_genParticles->at(indexH)).child0)).child0;
@@ -275,8 +271,6 @@ void code_gen(int nsel=0, bool silent=0){
     if (indextq[0] == -1 || indextq[1] == -1) continue; 
     
     histo->Fill(5., weight);
-
-    
     
     ttH::GenParticle lep1 = pruned_genParticles->at(indexlepton);
     ttH::GenParticle lep2 = pruned_genParticles->at(indextlepton);
@@ -284,6 +278,9 @@ void code_gen(int nsel=0, bool silent=0){
     ttH::GenParticle qw2 = pruned_genParticles->at(indexq[1]);
     ttH::GenParticle q1 = pruned_genParticles->at(indextq[0]);
     ttH::GenParticle q2 = pruned_genParticles->at(indextq[1]);
+
+    if (lep1.pdgID*lep2.pdgID < 0) continue;
+    histo->Fill(6., weight);
     
     TVector3 vlep1(lep1.tlv().Px(), lep1.tlv().Py(), lep1.tlv().Pz());
     TVector3 vlep2(lep2.tlv().Px(), lep2.tlv().Py(), lep2.tlv().Pz());
@@ -318,19 +315,16 @@ void code_gen(int nsel=0, bool silent=0){
     histo_dr_tqqs->Fill(vtqq.DeltaR(vlep2), weight); 
 
     histo_dr_hwwl_q->Fill(min_dr, weight);
-
-    if (mindr <= 0.3) dRcuts[0]=dRcuts[0]+weight;
     
-    if (vlep1.Pt() < 10 && vlep2.Pt() < 10) continue;
-    histo->Fill(6., weight); 
-    if (mindr <= 0.3) dRcuts[1]=dRcuts[1]+weight;
+    if (vlep1.Pt() < 10 || vlep2.Pt() < 10) continue;
+    histo->Fill(7., weight); 
     
     if (vlep1.Pt() < 20 && vlep2.Pt() < 20 ) continue;
-    histo->Fill(7., weight); 
+    histo->Fill(8., weight); 
 
-    if (mindr <= 0.3) dRcuts[2]=dRcuts[2]+weight;
-     
-    // cout << iEvent << " done" << endl;
+    
+    if (mindr <= 0.3)  histo->Fill(9., weight); 
+    if (mintdr <= 0.3)  histo->Fill(10., weight); 
     
   }
   
@@ -348,11 +342,13 @@ void code_gen(int nsel=0, bool silent=0){
       if (i == 4) cout << " all children present: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 5) cout << " HWW semileptonic: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 6) cout << " tt semileptonic:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 6) cout << " ----> from which " << dRcuts[0] << "  (" << dRcuts[0]*100/histo->GetBinContent(i) << "%) have DR <= 0.3 " << endl;
-      if (i == 7) cout << " Pt lepton > 10: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 7) cout << " ----> from which " << dRcuts[1] << "  (" << dRcuts[1]*100/histo->GetBinContent(i) << "%) have DR <= 0.3 " << endl;
-      if (i == 8) cout << " Pt lepton > 20:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 8) cout << " ----> from which " << dRcuts[2] << "  (" << dRcuts[2]*100/histo->GetBinContent(i) << "%) have DR <= 0.3 " << endl;
+      if (i == 7) cout << " SS dileptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 8) cout << " Pt lepton > 10: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 9) cout << " Pt lepton > 20:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;      
+      if (i == 10) cout << " DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+      		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
+      if (i == 11) cout << " DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+      		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl;
 	 
     }
     cout << "------------------------------------------" << endl;
