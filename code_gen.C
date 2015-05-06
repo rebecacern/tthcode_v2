@@ -13,14 +13,18 @@ void code_gen(int nsel=0, bool silent=0){
   
   char plotName[300];
   sprintf(plotName,"test");
-  if (nsel == 11) {sprintf(plotName,"ttH125");}
-  if (nsel == 0) {sprintf(plotName,"ttH125new");}
+  if (nsel == 0) {sprintf(plotName,"ttH125");}
+  if (nsel == 1111) {sprintf(plotName,"ttH125new");}
   
   
   char myRootFile[300];
   sprintf(myRootFile,"../tuples/%s.root", plotName);
 
   TFile *fin = new TFile(myRootFile);
+
+  TH1D*  h0;
+  h0 = (TH1D*) fin->Get("OSTwoLepAna/numInitialWeightedMCevents");
+  int totalevents = h0->GetEntries();
 
   TTree *tree = (TTree*)fin->Get("OSTwoLepAna/summaryTree");
 
@@ -35,6 +39,10 @@ void code_gen(int nsel=0, bool silent=0){
 
   
   vector<ttH::GenParticle> *pruned_genParticles= 0;
+  vector<ttH::Lepton> *preselected_leptons= 0;
+  vector<ttH::Lepton> *tightMvaBased_leptons= 0;
+  vector<ttH::Electron> *raw_electrons = 0;
+  vector<ttH::Muon> *raw_muons = 0;
   
   
   TBranch *b_mcwgt;   //!
@@ -47,6 +55,10 @@ void code_gen(int nsel=0, bool silent=0){
  
   
   TBranch *b_pruned_genParticles = 0;
+  TBranch *b_preselected_leptons = 0;
+  TBranch *b_tightMvaBased_leptons = 0;
+  TBranch *b_raw_electrons = 0;
+  TBranch *b_raw_muons = 0;
  
   tree->SetBranchAddress("mcwgt", &mcwgt, &b_mcwgt);
   tree->SetBranchAddress("wgt", &wgt, &b_wgt);
@@ -56,6 +68,10 @@ void code_gen(int nsel=0, bool silent=0){
   tree->SetBranchAddress("runNumber", &runNumber, &b_runNumber);
   tree->SetBranchAddress("higgs_decay", &higgs_decay, &b_higgs_decay);
   tree->SetBranchAddress("pruned_genParticles", &pruned_genParticles, &b_pruned_genParticles);
+  tree->SetBranchAddress("preselected_leptons", &preselected_leptons, &b_preselected_leptons);
+  tree->SetBranchAddress("tightMvaBased_leptons", &tightMvaBased_leptons, &b_tightMvaBased_leptons);
+  tree->SetBranchAddress("raw_electrons", &raw_electrons, &b_raw_electrons);
+  tree->SetBranchAddress("raw_muons", &raw_muons, &b_raw_muons);
   ////
   
   
@@ -70,7 +86,7 @@ void code_gen(int nsel=0, bool silent=0){
   // Histos
   char title[300];
   sprintf(title,"cuts_%s", plotName);
-  TH1F* histo = new TH1F( title, "Cut Flow", 20, 0, 20 );
+  TH1F* histo = new TH1F( title, "Cut Flow", 50, 0, 50 );
   histo->Sumw2();
  
   sprintf(title,"deltaR_qq_%s", plotName);
@@ -132,7 +148,8 @@ void code_gen(int nsel=0, bool silent=0){
   int nused = 0;
   int nHWW = 0;
   
-  if (!silent) cout << "[Info:] Number of raw events: " << tree->GetEntries() << endl;
+  if (!silent) cout << "[Info:] Tuple made with: " << totalevents << " events " << endl;
+  if (!silent) cout << "[Info:] Number of raw events in tuple: " << tree->GetEntries() << "(" << tree->GetEntries()*100/totalevents << "%)" << endl;
   // loop over events 
   //for(int iEvent = 0; iEvent < 100000; iEvent++){
   for(int iEvent = 0; iEvent < tree->GetEntries(); iEvent++){
@@ -141,12 +158,45 @@ void code_gen(int nsel=0, bool silent=0){
     //Point to the proper entry
     b_higgs_decay->GetEntry(tentry);
     b_pruned_genParticles->GetEntry(tentry);
+    b_preselected_leptons->GetEntry(tentry);
+    b_tightMvaBased_leptons->GetEntry(tentry);
+    b_raw_electrons->GetEntry(tentry);
+    b_raw_muons->GetEntry(tentry);
+  
   
     nused++; 
     histo->Fill(0., weight);
     
-    if (nsel ==0 && !higgs_decay) continue;
+    //pseudo-preselection
+    int n_raw_lep = 0;
+    for (unsigned int i = 0; i < raw_muons->size(); i++){
+      ttH::Muon rmuon= raw_muons->at(i);
+      bool good_mu = true;
+      if (rmuon.tlv().Pt() < 10 || abs(rmuon.tlv().Eta()) >= 2.4) good_mu = false;
+      //else if (rmuon.relIso >= 0.5) good_mu = false;
+      else if (abs(rmuon.dxy) >= 0.05 || abs(rmuon.dz) >= 0.1)good_mu = false;
+      if (good_mu) n_raw_lep++;
+    }
+   
+    for (unsigned int i = 0; i < raw_electrons->size(); i++){
+      ttH::Electron rele= raw_electrons->at(i);
+      bool good_ele = true;
+      if (rele.tlv().Pt() <= 10 || abs(rele.tlv().Eta()) >= 2.5) good_ele = false;
+     // else if (rele.relIso >= 0.5) good_ele = false;
+      if (abs(rele.SCeta) < 0.8){ if (rele.mvaID <= 0.35) good_ele = false;}
+      else if (abs(rele.SCeta) < 1.479) { if( rele.mvaID <= 0.2) good_ele = false;}
+      else { if(rele.mvaID <= -0.52) good_ele = false;}
+      if (abs(rele.dxy) > 0.05 || abs(rele.dz) > 0.1 || rele.numMissingInnerHits > 1) good_ele = false;
+      
+      if (good_ele) n_raw_lep++;
+    }
+ 
+    if (n_raw_lep < 2) continue;
+    //if (preselected_leptons->size() < 2) continue;
     histo->Fill(1., weight);
+    
+    if ((nsel ==0 || nsel == 1111) && !higgs_decay) continue;
+    histo->Fill(2., weight);
        
               
     bool HWW = false; 
@@ -183,9 +233,9 @@ void code_gen(int nsel=0, bool silent=0){
       }
     } 
     
-    if (nsel ==0 && !HWW) continue;
+    if ((nsel ==0 || nsel ==1111) && !HWW) continue;
    
-    histo->Fill(2., weight);
+    histo->Fill(3., weight);
     nHWW++;
     
     //selecting full legacy completed kids0
@@ -205,7 +255,7 @@ void code_gen(int nsel=0, bool silent=0){
     if (pruned_genParticles->at(indexWt).child1 == 9999) continue;
     if (pruned_genParticles->at(indexWat).child0 == 9999) continue;
     if (pruned_genParticles->at(indexWat).child1 == 9999) continue;
-    histo->Fill(3., weight);
+    histo->Fill(4., weight);
     
 
     //selecting semileptonic HWW
@@ -238,7 +288,7 @@ void code_gen(int nsel=0, bool silent=0){
 
     if (indexq[0] == -1 || indexq[1] == -1) continue; 
     
-    histo->Fill(4., weight);
+    histo->Fill(5., weight);
     
     //selecting semileptonic tt
     int ntleptons = 0;
@@ -270,7 +320,7 @@ void code_gen(int nsel=0, bool silent=0){
 
     if (indextq[0] == -1 || indextq[1] == -1) continue; 
     
-    histo->Fill(5., weight);
+    histo->Fill(6., weight);
     
     ttH::GenParticle lep1 = pruned_genParticles->at(indexlepton);
     ttH::GenParticle lep2 = pruned_genParticles->at(indextlepton);
@@ -280,8 +330,9 @@ void code_gen(int nsel=0, bool silent=0){
     ttH::GenParticle q2 = pruned_genParticles->at(indextq[1]);
 
     if (lep1.pdgID*lep2.pdgID < 0) continue;
-    histo->Fill(6., weight);
+    histo->Fill(7., weight);
     
+    // Saving vectors 
     TVector3 vlep1(lep1.tlv().Px(), lep1.tlv().Py(), lep1.tlv().Pz());
     TVector3 vlep2(lep2.tlv().Px(), lep2.tlv().Py(), lep2.tlv().Pz());
     TVector3 vqw1(qw1.tlv().Px(), qw1.tlv().Py(), qw1.tlv().Pz());
@@ -291,6 +342,7 @@ void code_gen(int nsel=0, bool silent=0){
     TVector3 vqq = vqw1+vqw2;
     TVector3 vtqq = vq1+vq2;
     
+    // angles
     float mindr = TMath::Min(vqw1.DeltaR(vlep1),vqw2.DeltaR(vlep1));
     float min_dr =  TMath::Min(vq1.DeltaR(vlep1),vq2.DeltaR(vlep1));
     if (min_dr > mindr) min_dr = mindr;
@@ -299,12 +351,14 @@ void code_gen(int nsel=0, bool silent=0){
     float min_tdr =  TMath::Min(vqw1.DeltaR(vlep2),vqw2.DeltaR(vlep2));
     if (min_tdr > mintdr) min_tdr = mintdr;
     
-    histo_dr_t_lq->Fill(mintdr, weight);
-    histo_dr_t_l_q->Fill(min_tdr, weight);
     
     // Filling histos
+    
+    
     histo_dr_hwwqq->Fill(vqw1.DeltaR(vqw2), weight);
     histo_dr_tqq->Fill(vq1.DeltaR(vq2), weight);
+    histo_dr_t_lq->Fill(mintdr, weight);
+    histo_dr_t_l_q->Fill(min_tdr, weight);
     
     histo_dr_hwwlq->Fill(TMath::Min(vqw1.DeltaR(vlep1),vqw2.DeltaR(vlep1)), weight);
     histo_lepton_pt->Fill(vlep1.Pt(), weight);
@@ -316,15 +370,15 @@ void code_gen(int nsel=0, bool silent=0){
 
     histo_dr_hwwl_q->Fill(min_dr, weight);
     
-    if (vlep1.Pt() < 10 || vlep2.Pt() < 10) continue;
-    histo->Fill(7., weight); 
+    if (vlep1.Pt() < 10 || vlep2.Pt() < 10 || abs(vlep1.Eta())> 2.5 || abs(vlep2.Eta())> 2.5) continue;
+    histo->Fill(8., weight); 
     
     if (vlep1.Pt() < 20 && vlep2.Pt() < 20 ) continue;
-    histo->Fill(8., weight); 
+    histo->Fill(9., weight); 
 
     
-    if (mindr <= 0.3)  histo->Fill(9., weight); 
-    if (mintdr <= 0.3)  histo->Fill(10., weight); 
+    if (min_dr <= 0.3)  histo->Fill(10., weight); 
+    if (min_tdr <= 0.3)  histo->Fill(11., weight); 
     
   }
   
@@ -335,19 +389,20 @@ void code_gen(int nsel=0, bool silent=0){
     cout << "------------------------------------------" << endl;
     cout << "[Results:] GEN only " << endl;
     cout << "------------------------------------------" << endl;
-    for (int i = 1; i < 12; i++){
+    for (int i = 1; i < 13; i++){
       if (i == 1) cout << " all: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 2) cout << " higgs decay: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 3) cout << " HWW : " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 4) cout << " all children present: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 5) cout << " HWW semileptonic: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 6) cout << " tt semileptonic:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 7) cout << " SS dileptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 8) cout << " Pt lepton > 10: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 9) cout << " Pt lepton > 20:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;      
-      if (i == 10) cout << " DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+      if (i == 2) cout << " 2 or more preselected leptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 3) cout << " higgs decay: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 4) cout << " HWW : " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 5) cout << " all children present: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 6) cout << " HWW semileptonic: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 7) cout << " tt semileptonic:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 8) cout << " SS dileptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 9) cout << " Pt lepton > 10: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 10) cout << " Pt lepton > 20:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;      
+      if (i == 11) cout << " DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
       		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
-      if (i == 11) cout << " DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+      if (i == 12) cout << " DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
       		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl;
 	 
     }
