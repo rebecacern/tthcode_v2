@@ -194,8 +194,8 @@ void code_gen(int nsel=0, bool silent=0){
       if (good_ele) n_raw_lep++;
     }
  
-    if (n_raw_lep < 2) continue;
-    //if (preselected_leptons->size() < 2) continue;
+    if (n_raw_lep < 2) continue; //preselection no-iso
+    //if (preselected_leptons->size() < 2) continue; //preselection official
     histo->Fill(1., weight);
     
     if (!higgs_decay) continue;
@@ -354,13 +354,10 @@ void code_gen(int nsel=0, bool silent=0){
     
     
     // Filling histos
-    
-    
     histo_dr_hwwqq->Fill(vqw1.DeltaR(vqw2), weight);
     histo_dr_tqq->Fill(vq1.DeltaR(vq2), weight);
     histo_dr_t_lq->Fill(mintdr, weight);
     histo_dr_t_l_q->Fill(min_tdr, weight);
-    
     histo_dr_hwwlq->Fill(TMath::Min(vqw1.DeltaR(vlep1),vqw2.DeltaR(vlep1)), weight);
     histo_lepton_pt->Fill(vlep1.Pt(), weight);
     histo_lepton_t_pt->Fill(vlep2.Pt(), weight);
@@ -369,11 +366,10 @@ void code_gen(int nsel=0, bool silent=0){
     histo_dr_lep_pt->Fill(mindr,vlep1.Pt(), weight);
     histo_dr_hwwqqs->Fill(vqq.DeltaR(vlep1), weight); 
     histo_dr_tqqs->Fill(vtqq.DeltaR(vlep2), weight); 
-
     histo_dr_hwwl_q->Fill(min_dr, weight);
-    
     histo_dr_ll->Fill(vlep1.DeltaR(vlep2), weight);
     
+   
     if (vlep1.Pt() < 10 || vlep2.Pt() < 10 || abs(vlep1.Eta())> 2.5 || abs(vlep2.Eta())> 2.5) continue;
     if (vlep1.Pt() < 20 && vlep2.Pt() < 20 ) continue;
     histo->Fill(8., weight); 
