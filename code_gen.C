@@ -357,7 +357,7 @@ void code_gen(int nsel=0, bool silent=0){
     histo->Fill(8., weight); 
 
     // How many have DR < = 0.3
-    if (min_dr <= 0.3)  histo->Fill(9., weight); 
+    if (min_dr <= 0.3\)  histo->Fill(9., weight); 
     if (min_tdr <= 0.3)  histo->Fill(10., weight); 
     
   }
