@@ -78,9 +78,9 @@ void plotsimple(int mode = 1){
     leg->Draw();
     c1->SaveAs("plots/gen_" + cutLabel[iPlot] +".png");
    // c1->SaveAs("plots/gen_" + cutLabel[iPlot] + ".pdf");
-  //  gPad->SetLogy();
-//    c1->SetLogy();
-  //  c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.png");
+  // gPad->SetLogy();
+// c1->SetLogy();
+  // c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.png");
    // c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.pdf");
    
   }
@@ -112,10 +112,10 @@ void plotsimple(int mode = 1){
     leg->Draw();
     c1->SaveAs("plots/gen_" + cutLabel[iPlot+12] +".png");
    // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12] + ".pdf");
-  //  gPad->SetLogy();
-//    c1->SetLogy();
-  //  c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.png");
-  //  c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.pdf");
+  // gPad->SetLogy();
+// c1->SetLogy();
+  // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.png");
+  // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.pdf");
    
   }
 

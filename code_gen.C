@@ -5,11 +5,7 @@
 #include "TH1F.h"
 #include "TH2F.h"
 
-
-
 void code_gen(int nsel=0, bool silent=0){
-
-
   
   char plotName[300];
   sprintf(plotName,"test");
@@ -37,13 +33,11 @@ void code_gen(int nsel=0, bool silent=0){
   Int_t 	  runNumber;
   Int_t 	  higgs_decay;
 
-  
   vector<ttH::GenParticle> *pruned_genParticles= 0;
   vector<ttH::Lepton> *preselected_leptons= 0;
   vector<ttH::Lepton> *tightMvaBased_leptons= 0;
   vector<ttH::Electron> *raw_electrons = 0;
   vector<ttH::Muon> *raw_muons = 0;
-  
   
   TBranch *b_mcwgt;   //!
   TBranch *b_wgt;   //!
@@ -53,7 +47,6 @@ void code_gen(int nsel=0, bool silent=0){
   TBranch *b_runNumber;   //!
   TBranch *b_higgs_decay;   //!
  
-  
   TBranch *b_pruned_genParticles = 0;
   TBranch *b_preselected_leptons = 0;
   TBranch *b_tightMvaBased_leptons = 0;
@@ -72,8 +65,7 @@ void code_gen(int nsel=0, bool silent=0){
   tree->SetBranchAddress("tightMvaBased_leptons", &tightMvaBased_leptons, &b_tightMvaBased_leptons);
   tree->SetBranchAddress("raw_electrons", &raw_electrons, &b_raw_electrons);
   tree->SetBranchAddress("raw_muons", &raw_muons, &b_raw_muons);
-  ////
-  
+  ///////////////
   
   cout <<"[Info:] You are running GEN code over " << plotName << endl;
   char newRootFile[300];
@@ -144,16 +136,13 @@ void code_gen(int nsel=0, bool silent=0){
   sprintf(title,"deltaR_lpt_%s", plotName);
   TH2F* histo_dr_lep_pt = new TH2F( title, "#DeltaR Vs P_{T} of the lepton", 100, 0, 5, 500, 0, 500);
   histo_dr_lep_pt->Sumw2();
- 
-  
 
 
-  
- 
   double weight = 1;
   
   if (!silent) cout << "[Info:] Original sample:  " << totalevents << " events " << endl;
   if (!silent) cout << "[Info:] Number of events in tuple: " << tree->GetEntries() << "(" << tree->GetEntries()*100/totalevents << "%)" << endl;
+  
   // loop over events 
   //for(int iEvent = 0; iEvent < 100000; iEvent++){
   for(int iEvent = 0; iEvent < tree->GetEntries(); iEvent++){
@@ -166,7 +155,6 @@ void code_gen(int nsel=0, bool silent=0){
     b_tightMvaBased_leptons->GetEntry(tentry);
     b_raw_electrons->GetEntry(tentry);
     b_raw_muons->GetEntry(tentry);
-  
   
     histo->Fill(0., weight);
     
@@ -200,8 +188,8 @@ void code_gen(int nsel=0, bool silent=0){
     
     if (!higgs_decay) continue;
     histo->Fill(2., weight);
-       
-              
+    
+    // Get Ws and Higgs          
     bool HWW = false; 
     int indexH = -1;
     int indexWt = -1;
@@ -240,11 +228,9 @@ void code_gen(int nsel=0, bool silent=0){
     histo->Fill(3., weight);
     
     //selecting full legacy completed kids0
-    
     if ((pruned_genParticles->at(indexH)).child0 == 9999) continue;
     if ((pruned_genParticles->at(indexH)).child1 == 9999) continue;
     if (indexWt == -1 || indexWat == -1) continue;
-
     
     //selecting full legacy completed grandkids
     if ((pruned_genParticles->at((pruned_genParticles->at(indexH)).child0)).child0 == 9999) continue;   
@@ -258,7 +244,6 @@ void code_gen(int nsel=0, bool silent=0){
     if (pruned_genParticles->at(indexWat).child1 == 9999) continue;
     histo->Fill(4., weight);
     
-
     //selecting semileptonic HWW
     int nleptons = 0;
     int kid0 = (pruned_genParticles->at((pruned_genParticles->at(indexH)).child0)).child0;
@@ -269,9 +254,7 @@ void code_gen(int nsel=0, bool silent=0){
     if (abs((pruned_genParticles->at(kid1)).pdgID) == 11 || abs((pruned_genParticles->at(kid1)).pdgID) == 13) nleptons++; 
     if (abs((pruned_genParticles->at(kid2)).pdgID) == 11 || abs((pruned_genParticles->at(kid2)).pdgID) == 13) nleptons++; 
     if (abs((pruned_genParticles->at(kid3)).pdgID) == 11 || abs((pruned_genParticles->at(kid3)).pdgID) == 13) nleptons++; 
-    
     if (nleptons != 1) continue;
-   
     
     int indexlepton = -1; 
     if (abs((pruned_genParticles->at(kid0)).pdgID) == 11 || abs((pruned_genParticles->at(kid0)).pdgID) == 13){indexlepton=kid0;}
@@ -288,7 +271,6 @@ void code_gen(int nsel=0, bool silent=0){
     if (abs((pruned_genParticles->at(kid3)).pdgID) == 15 || abs((pruned_genParticles->at(kid3)).pdgID) == 17) continue;
 
     if (indexq[0] == -1 || indexq[1] == -1) continue; 
-    
     histo->Fill(5., weight);
     
     //selecting semileptonic tt
@@ -301,10 +283,9 @@ void code_gen(int nsel=0, bool silent=0){
     if (abs((pruned_genParticles->at(tkid1)).pdgID) == 11 || abs((pruned_genParticles->at(tkid1)).pdgID) == 13) ntleptons++; 
     if (abs((pruned_genParticles->at(tkid2)).pdgID) == 11 || abs((pruned_genParticles->at(tkid2)).pdgID) == 13) ntleptons++; 
     if (abs((pruned_genParticles->at(tkid3)).pdgID) == 11 || abs((pruned_genParticles->at(tkid3)).pdgID) == 13) ntleptons++; 
-    
     if (ntleptons != 1) continue;
    
-    
+    // Identify leptons and light quarks
     int indextlepton = -1; 
     if (abs((pruned_genParticles->at(tkid0)).pdgID) == 11 || abs((pruned_genParticles->at(tkid0)).pdgID) == 13){indextlepton=tkid0;}
     if (abs((pruned_genParticles->at(tkid1)).pdgID) == 11 || abs((pruned_genParticles->at(tkid1)).pdgID) == 13){indextlepton=tkid1;}
@@ -320,9 +301,9 @@ void code_gen(int nsel=0, bool silent=0){
     if (abs((pruned_genParticles->at(tkid3)).pdgID) == 15 || abs((pruned_genParticles->at(tkid3)).pdgID) == 17) continue;
 
     if (indextq[0] == -1 || indextq[1] == -1) continue; 
-    
     histo->Fill(6., weight);
     
+    // Fill up stuff
     ttH::GenParticle lep1 = pruned_genParticles->at(indexlepton);
     ttH::GenParticle lep2 = pruned_genParticles->at(indextlepton);
     ttH::GenParticle qw1 = pruned_genParticles->at(indexq[0]);
@@ -330,6 +311,7 @@ void code_gen(int nsel=0, bool silent=0){
     ttH::GenParticle q1 = pruned_genParticles->at(indextq[0]);
     ttH::GenParticle q2 = pruned_genParticles->at(indextq[1]);
 
+    // Chose same sign
     if (lep1.pdgID*lep2.pdgID < 0) continue;
     histo->Fill(7., weight);
     
@@ -369,19 +351,19 @@ void code_gen(int nsel=0, bool silent=0){
     histo_dr_hwwl_q->Fill(min_dr, weight);
     histo_dr_ll->Fill(vlep1.DeltaR(vlep2), weight);
     
-   
+    // Kinematics gen level 
     if (vlep1.Pt() < 10 || vlep2.Pt() < 10 || abs(vlep1.Eta())> 2.5 || abs(vlep2.Eta())> 2.5) continue;
     if (vlep1.Pt() < 20 && vlep2.Pt() < 20 ) continue;
     histo->Fill(8., weight); 
 
-    
+    // How many have DR < = 0.3
     if (min_dr <= 0.3)  histo->Fill(9., weight); 
     if (min_tdr <= 0.3)  histo->Fill(10., weight); 
     
   }
   
   
-
+ // Outside main loop
   
   if (!silent){
     cout << "---------------------------------------------------" << endl;
@@ -400,19 +382,14 @@ void code_gen(int nsel=0, bool silent=0){
       if (i == 10) cout << "  * DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
       		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
       if (i == 11) cout << "  * DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
-      		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl;
-	 
+      		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl 
     }
     cout << "---------------------------------------------------" << endl;
-   
-  
-
-
-
   }
+  
+  // Save rootfile
   f_var.Write();
   f_var.Close();
-
   
 
 }
