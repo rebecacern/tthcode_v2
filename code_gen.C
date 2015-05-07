@@ -382,8 +382,8 @@ void code_gen(int nsel=0, bool silent=0){
       if (i == 10) cout << "  * DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
 			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
       if (i == 11) cout << "  * DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
-			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl 
-		     }
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl;
+    }
     cout << "---------------------------------------------------" << endl;
   }
   
