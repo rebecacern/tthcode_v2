@@ -43,7 +43,7 @@ void plotsimple(int mode = 1){
   			       	"p_{T} of the H lepton","p_{T} of the top lepton", "p_{T} of the Higgs boson", 
 				"Higgs boson", "Lepton "}; 
 				
- int rebins[nPlots] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 5, 2.5, 2.5}; 
+  int rebins[nPlots] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 5, 2.5, 2.5}; 
 
   TH1D*  h0[nPlots-2];
   TH2D*  h1[2];
@@ -77,11 +77,11 @@ void plotsimple(int mode = 1){
   
     leg->Draw();
     c1->SaveAs("plots/gen_" + cutLabel[iPlot] +".png");
-   // c1->SaveAs("plots/gen_" + cutLabel[iPlot] + ".pdf");
-  // gPad->SetLogy();
-// c1->SetLogy();
-  // c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.png");
-   // c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.pdf");
+    // c1->SaveAs("plots/gen_" + cutLabel[iPlot] + ".pdf");
+    // gPad->SetLogy();
+    // c1->SetLogy();
+    // c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.png");
+    // c1->SaveAs("plots/gen_" + cutLabel[iPlot]+ "_log.pdf");
    
   }
   for (const int iPlot = 0; iPlot < 2; iPlot++){
@@ -111,11 +111,11 @@ void plotsimple(int mode = 1){
   
     leg->Draw();
     c1->SaveAs("plots/gen_" + cutLabel[iPlot+12] +".png");
-   // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12] + ".pdf");
-  // gPad->SetLogy();
-// c1->SetLogy();
-  // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.png");
-  // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.pdf");
+    // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12] + ".pdf");
+    // gPad->SetLogy();
+    // c1->SetLogy();
+    // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.png");
+    // c1->SaveAs("plots/gen_" + cutLabel[iPlot+12]+ "_log.pdf");
    
   }
 

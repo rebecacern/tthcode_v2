@@ -173,7 +173,7 @@ void code_gen(int nsel=0, bool silent=0){
       ttH::Electron rele= raw_electrons->at(i);
       bool good_ele = true;
       if (rele.tlv().Pt() <= 10 || abs(rele.tlv().Eta()) >= 2.5) good_ele = false;
-     // else if (rele.relIso >= 0.5) good_ele = false;
+      // else if (rele.relIso >= 0.5) good_ele = false;
       if (abs(rele.SCeta) < 0.8){ if (rele.mvaID <= 0.35) good_ele = false;}
       else if (abs(rele.SCeta) < 1.479) { if( rele.mvaID <= 0.2) good_ele = false;}
       else { if(rele.mvaID <= -0.52) good_ele = false;}
@@ -363,7 +363,7 @@ void code_gen(int nsel=0, bool silent=0){
   }
   
   
- // Outside main loop
+  // Outside main loop
   
   if (!silent){
     cout << "---------------------------------------------------" << endl;
@@ -380,10 +380,10 @@ void code_gen(int nsel=0, bool silent=0){
       if (i == 8) cout << " SS dileptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 9) cout << " Pt 20,10 - Eta: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 10) cout << "  * DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
-      		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
       if (i == 11) cout << "  * DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
-      		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl 
-    }
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl 
+		     }
     cout << "---------------------------------------------------" << endl;
   }
   
