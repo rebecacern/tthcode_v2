@@ -117,15 +117,21 @@ void code_gen(int nsel=0, bool silent=0){
   TH1F* histo_dr_t_lq = new TH1F( title, "#Delta R between top lepton and closest top quark", 100, 0, 5 );
   histo_dr_t_lq->Sumw2();
   
- 
   sprintf(title,"deltaR_t_l_q_%s", plotName);
   TH1F* histo_dr_t_l_q = new TH1F( title, "#Delta R between top lepton and closest quark", 100, 0, 5 );
   histo_dr_t_l_q->Sumw2();
  
+  sprintf(title,"deltaR_ll_%s", plotName);
+  TH1F* histo_dr_ll = new TH1F( title, "#Delta R between leptons", 100, 0, 5 );
+  histo_dr_ll->Sumw2();
   
   sprintf(title,"lepton_pt_%s", plotName);
   TH1F* histo_lepton_pt = new TH1F( title, "P_{T} of the lepton", 200, 0, 200);
   histo_lepton_pt->Sumw2();
+  
+  sprintf(title,"lepton_t_pt_%s", plotName);
+  TH1F* histo_lepton_t_pt = new TH1F( title, "P_{T} of the lepton (top)", 200, 0, 200);
+  histo_lepton_t_pt->Sumw2();
  
   sprintf(title,"Higgs_pt_%s", plotName);
   TH1F* histo_higgs_pt = new TH1F( title, "P_{T} of the Higgs", 500, 0, 500);
@@ -145,11 +151,9 @@ void code_gen(int nsel=0, bool silent=0){
   
  
   double weight = 1;
-  int nused = 0;
-  int nHWW = 0;
   
-  if (!silent) cout << "[Info:] Tuple made with: " << totalevents << " events " << endl;
-  if (!silent) cout << "[Info:] Number of raw events in tuple: " << tree->GetEntries() << "(" << tree->GetEntries()*100/totalevents << "%)" << endl;
+  if (!silent) cout << "[Info:] Original sample:  " << totalevents << " events " << endl;
+  if (!silent) cout << "[Info:] Number of events in tuple: " << tree->GetEntries() << "(" << tree->GetEntries()*100/totalevents << "%)" << endl;
   // loop over events 
   //for(int iEvent = 0; iEvent < 100000; iEvent++){
   for(int iEvent = 0; iEvent < tree->GetEntries(); iEvent++){
@@ -164,7 +168,6 @@ void code_gen(int nsel=0, bool silent=0){
     b_raw_muons->GetEntry(tentry);
   
   
-    nused++; 
     histo->Fill(0., weight);
     
     //pseudo-preselection
@@ -195,7 +198,7 @@ void code_gen(int nsel=0, bool silent=0){
     //if (preselected_leptons->size() < 2) continue;
     histo->Fill(1., weight);
     
-    if ((nsel ==0 || nsel == 1111) && !higgs_decay) continue;
+    if (!higgs_decay) continue;
     histo->Fill(2., weight);
        
               
@@ -233,10 +236,8 @@ void code_gen(int nsel=0, bool silent=0){
       }
     } 
     
-    if ((nsel ==0 || nsel ==1111) && !HWW) continue;
-   
+    if (!HWW) continue;   
     histo->Fill(3., weight);
-    nHWW++;
     
     //selecting full legacy completed kids0
     
@@ -362,6 +363,7 @@ void code_gen(int nsel=0, bool silent=0){
     
     histo_dr_hwwlq->Fill(TMath::Min(vqw1.DeltaR(vlep1),vqw2.DeltaR(vlep1)), weight);
     histo_lepton_pt->Fill(vlep1.Pt(), weight);
+    histo_lepton_t_pt->Fill(vlep2.Pt(), weight);
     histo_higgs_pt->Fill((pruned_genParticles->at(indexH)).tlv().Pt(), weight);
     histo_dr_higgs_pt->Fill(mindr,(pruned_genParticles->at(indexH)).tlv().Pt(), weight);
     histo_dr_lep_pt->Fill(mindr,vlep1.Pt(), weight);
@@ -370,15 +372,15 @@ void code_gen(int nsel=0, bool silent=0){
 
     histo_dr_hwwl_q->Fill(min_dr, weight);
     
-    if (vlep1.Pt() < 10 || vlep2.Pt() < 10 || abs(vlep1.Eta())> 2.5 || abs(vlep2.Eta())> 2.5) continue;
-    histo->Fill(8., weight); 
+    histo_dr_ll->Fill(vlep1.DeltaR(vlep2), weight);
     
+    if (vlep1.Pt() < 10 || vlep2.Pt() < 10 || abs(vlep1.Eta())> 2.5 || abs(vlep2.Eta())> 2.5) continue;
     if (vlep1.Pt() < 20 && vlep2.Pt() < 20 ) continue;
-    histo->Fill(9., weight); 
+    histo->Fill(8., weight); 
 
     
-    if (min_dr <= 0.3)  histo->Fill(10., weight); 
-    if (min_tdr <= 0.3)  histo->Fill(11., weight); 
+    if (min_dr <= 0.3)  histo->Fill(9., weight); 
+    if (min_tdr <= 0.3)  histo->Fill(10., weight); 
     
   }
   
@@ -386,9 +388,9 @@ void code_gen(int nsel=0, bool silent=0){
 
   
   if (!silent){
-    cout << "------------------------------------------" << endl;
+    cout << "---------------------------------------------------" << endl;
     cout << "[Results:] GEN only " << endl;
-    cout << "------------------------------------------" << endl;
+    cout << "---------------------------------------------------" << endl;
     for (int i = 1; i < 13; i++){
       if (i == 1) cout << " all: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 2) cout << " 2 or more preselected leptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
@@ -398,16 +400,15 @@ void code_gen(int nsel=0, bool silent=0){
       if (i == 6) cout << " HWW semileptonic: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 7) cout << " tt semileptonic:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 8) cout << " SS dileptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 9) cout << " Pt lepton > 10: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-      if (i == 10) cout << " Pt lepton > 20:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;      
-      if (i == 11) cout << " DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+      if (i == 9) cout << " Pt 20,10 - Eta: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 10) cout << "  * DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
       		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
-      if (i == 12) cout << " DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+      if (i == 11) cout << "  * DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
       		       << "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl;
 	 
     }
-    cout << "------------------------------------------" << endl;
-    cout << "[Info:]" << nHWW*100/nused << "% of HWW in the events" << endl;
+    cout << "---------------------------------------------------" << endl;
+   
   
 
 
