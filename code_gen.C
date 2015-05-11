@@ -112,6 +112,14 @@ void code_gen(int nsel=0, bool silent=0){
   sprintf(title,"deltaR_t_l_q_%s", plotName);
   TH1F* histo_dr_t_l_q = new TH1F( title, "#Delta R between top lepton and closest quark", 100, 0, 5 );
   histo_dr_t_l_q->Sumw2();
+  
+  sprintf(title,"deltaR_t_lb_%s", plotName);
+  TH1F* histo_dr_t_lb = new TH1F( title, "#Delta R between top lepton and closest b", 100, 0, 5 );
+  histo_dr_t_lb->Sumw2();
+  
+  sprintf(title,"deltaR_lb_%s", plotName);
+  TH1F* histo_dr_lb = new TH1F( title, "#Delta R between Higgs lepton and closest b", 100, 0, 5 );
+  histo_dr_lb->Sumw2();
  
   sprintf(title,"deltaR_ll_%s", plotName);
   TH1F* histo_dr_ll = new TH1F( title, "#Delta R between leptons", 100, 0, 5 );
@@ -155,7 +163,9 @@ void code_gen(int nsel=0, bool silent=0){
     b_tightMvaBased_leptons->GetEntry(tentry);
     b_raw_electrons->GetEntry(tentry);
     b_raw_muons->GetEntry(tentry);
-  
+    b_wgt->GetEntry(tentry);
+    
+    weight = wgt;
     histo->Fill(0., weight);
     
     //pseudo-preselection
@@ -182,8 +192,9 @@ void code_gen(int nsel=0, bool silent=0){
       if (good_ele) n_raw_lep++;
     }
  
-    if (n_raw_lep < 2) continue; //preselection no-iso
-    //if (preselected_leptons->size() < 2) continue; //preselection official
+    //if (n_raw_lep < 2) continue; //preselection no-iso
+    if (preselected_leptons->size() < 2) continue; //preselection official
+    //if (tightMvaBased_leptons->size() < 2) continue; //tight
     histo->Fill(1., weight);
     
     if (!higgs_decay) continue;
@@ -194,6 +205,8 @@ void code_gen(int nsel=0, bool silent=0){
     int indexH = -1;
     int indexWt = -1;
     int indexWat = -1;
+    int indexb = -1;
+    int indexab = -1;
     for (unsigned int i = 0; i < pruned_genParticles->size(); i++){
       ttH::GenParticle genpar = pruned_genParticles->at(i);
       if (genpar.pdgID == 25 && genpar.status == 62){
@@ -221,7 +234,10 @@ void code_gen(int nsel=0, bool silent=0){
 	    indexWat = i;
 	  }
 	} 
-      }
+      } 
+      else if (genpar.pdgID == -5) indexab = i;
+      else if (genpar.pdgID == 5) indexb = i;
+      
     } 
     
     if (!HWW) continue;   
@@ -242,6 +258,7 @@ void code_gen(int nsel=0, bool silent=0){
     if (pruned_genParticles->at(indexWt).child1 == 9999) continue;
     if (pruned_genParticles->at(indexWat).child0 == 9999) continue;
     if (pruned_genParticles->at(indexWat).child1 == 9999) continue;
+    if (indexb == -1 || indexab == -1) continue; 
     histo->Fill(4., weight);
     
     //selecting semileptonic HWW
@@ -310,6 +327,8 @@ void code_gen(int nsel=0, bool silent=0){
     ttH::GenParticle qw2 = pruned_genParticles->at(indexq[1]);
     ttH::GenParticle q1 = pruned_genParticles->at(indextq[0]);
     ttH::GenParticle q2 = pruned_genParticles->at(indextq[1]);
+    ttH::GenParticle b1 = pruned_genParticles->at(indexb);
+    ttH::GenParticle b2 = pruned_genParticles->at(indexab);
 
     // Chose same sign
     if (lep1.pdgID*lep2.pdgID < 0) continue;
@@ -322,17 +341,25 @@ void code_gen(int nsel=0, bool silent=0){
     TVector3 vqw2(qw2.tlv().Px(), qw2.tlv().Py(), qw2.tlv().Pz());
     TVector3 vq1(q1.tlv().Px(), q1.tlv().Py(), q1.tlv().Pz());
     TVector3 vq2(q2.tlv().Px(), q2.tlv().Py(), q2.tlv().Pz());
+    TVector3 vb1(b1.tlv().Px(), b1.tlv().Py(), b1.tlv().Pz());
+    TVector3 vb2(b2.tlv().Px(), b2.tlv().Py(), b2.tlv().Pz());
     TVector3 vqq = vqw1+vqw2;
     TVector3 vtqq = vq1+vq2;
     
     // angles
     float mindr = TMath::Min(vqw1.DeltaR(vlep1),vqw2.DeltaR(vlep1));
     float min_dr =  TMath::Min(vq1.DeltaR(vlep1),vq2.DeltaR(vlep1));
+    float min_drb =  TMath::Min(vb1.DeltaR(vlep1),vb2.DeltaR(vlep1));
     if (min_dr > mindr) min_dr = mindr;
+    float tot_min = min_dr;
+    if (tot_min > min_drb) tot_min = min_drb;
     
     float mintdr = TMath::Min(vq1.DeltaR(vlep2),vq2.DeltaR(vlep2));
     float min_tdr =  TMath::Min(vqw1.DeltaR(vlep2),vqw2.DeltaR(vlep2));
+    float min_tdrb =  TMath::Min(vb1.DeltaR(vlep2),vb2.DeltaR(vlep2));
     if (min_tdr > mintdr) min_tdr = mintdr;
+    float tot_tmin = min_tdr;
+    if (tot_tmin > min_tdrb) tot_tmin = min_tdrb;
     
     
     // Filling histos
@@ -350,6 +377,8 @@ void code_gen(int nsel=0, bool silent=0){
     histo_dr_tqqs->Fill(vtqq.DeltaR(vlep2), weight); 
     histo_dr_hwwl_q->Fill(min_dr, weight);
     histo_dr_ll->Fill(vlep1.DeltaR(vlep2), weight);
+    histo_dr_t_lb->Fill(min_tdrb, weight);
+    histo_dr_lb->Fill(min_drb, weight);
     
     // Kinematics gen level 
     if (vlep1.Pt() < 10 || vlep2.Pt() < 10 || abs(vlep1.Eta())> 2.5 || abs(vlep2.Eta())> 2.5) continue;
@@ -357,8 +386,15 @@ void code_gen(int nsel=0, bool silent=0){
     histo->Fill(8., weight); 
 
     // How many have DR < = 0.3
-    if (min_dr <= 0.3\)  histo->Fill(9., weight); 
-    if (min_tdr <= 0.3)  histo->Fill(10., weight); 
+    if (mindr <= 0.3)  histo->Fill(9., weight); 
+    if (mintdr <= 0.3)  histo->Fill(10., weight); 
+    if (min_dr <= 0.3)  histo->Fill(11., weight); 
+    if (min_tdr <= 0.3)  histo->Fill(12., weight); 
+    if (tot_min <= 0.3)  histo->Fill(13., weight); 
+    if (tot_tmin <= 0.3)  histo->Fill(14., weight);
+    if (min_dr <= 0.3 || min_tdr <= 0.3)  histo->Fill(15., weight);
+    if (min_drb <= 0.3 || min_tdrb <= 0.3)  histo->Fill(16., weight);
+    if (tot_tmin <= 0.3 || tot_min <= 0.3 || min_dr <= 0.3 || min_tdr <= 0.3)  histo->Fill(17., weight);
     
   }
   
@@ -369,7 +405,7 @@ void code_gen(int nsel=0, bool silent=0){
     cout << "---------------------------------------------------" << endl;
     cout << "[Results:] GEN only " << endl;
     cout << "---------------------------------------------------" << endl;
-    for (int i = 1; i < 13; i++){
+    for (int i = 1; i < 20; i++){
       if (i == 1) cout << " all: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 2) cout << " 2 or more preselected leptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 3) cout << " higgs decay: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
@@ -378,11 +414,26 @@ void code_gen(int nsel=0, bool silent=0){
       if (i == 6) cout << " HWW semileptonic: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 7) cout << " tt semileptonic:" << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 8) cout << " SS dileptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 8) cout << "   * " << histo->GetBinContent(i)*100/totalevents << endl;
       if (i == 9) cout << " Pt 20,10 - Eta: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 10) cout << "  * DeltaR HWW lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
 			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-1) << "%) " << endl;     
       if (i == 11) cout << "  * DeltaR top lepton <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
 			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-2) << "%) " << endl;
+      if (i == 12) cout << "  * DeltaR HWW lepton all q <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-3) << "%) " << endl;     
+      if (i == 13) cout << "  * DeltaR top lepton all q <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-4) << "%) " << endl;
+      if (i == 14) cout << "  * DeltaR HWW lepton all j <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-5) << "%) " << endl;     
+      if (i == 15) cout << "  * DeltaR top lepton all j <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-6) << "%) " << endl;
+      if (i == 16) cout << "  * DeltaR all lepton all j <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-7) << "%) " << endl;
+      if (i == 17) cout << "  * DeltaR all lepton all b <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-8) << "%) " << endl;
+      if (i == 18) cout << "  * DeltaR all lepton all j+b <= 0.3: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) 
+			<< "(" << histo->GetBinContent(i)*100/histo->GetBinContent(i-9) << "%) " << endl;
     }
     cout << "---------------------------------------------------" << endl;
   }

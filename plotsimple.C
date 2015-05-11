@@ -107,7 +107,7 @@ void plotsimple(int mode = 1){
     leg->SetFillStyle(1001);
     leg->SetFillColor(kWhite);
     leg->SetBorderSize(1);
-    leg->AddEntry(h1[iPlot],  properLabel[0], "l");
+    leg->AddEntry(h1[iPlot],  properLabel[0], "p");
   
     leg->Draw();
     c1->SaveAs("plots/gen_" + cutLabel[iPlot+12] +".png");
