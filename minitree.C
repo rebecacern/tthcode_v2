@@ -5,6 +5,8 @@
 #include "TH1F.h"
 #include "TH2F.h"
 
+float mz = 91.1876;
+
 void minitree(int nsel=0, bool silent=0){
   
   char plotName[300];
@@ -35,6 +37,8 @@ void minitree(int nsel=0, bool silent=0){
   vector<ttH::Lepton> *tightMvaBased_leptons= 0;
   vector<ttH::Muon> *tightMvaBased_muons= 0;
   vector<ttH::Electron> *tightMvaBased_electrons = 0;
+  vector<ttH::Jet> *preselected_jets = 0;
+  vector<ttH::MET> *met = 0;
   
   TBranch *b_mcwgt;   //!
   TBranch *b_wgt;   //!
@@ -47,6 +51,8 @@ void minitree(int nsel=0, bool silent=0){
   TBranch *b_tightMvaBased_leptons = 0;
   TBranch *b_tightMvaBased_muons = 0;
   TBranch *b_tightMvaBased_electrons = 0;
+  TBranch *b_preselected_jets = 0;
+  TBranch *b_met = 0;
   
  
   tree->SetBranchAddress("mcwgt", &mcwgt, &b_mcwgt);
@@ -59,6 +65,8 @@ void minitree(int nsel=0, bool silent=0){
   tree->SetBranchAddress("tightMvaBased_leptons", &tightMvaBased_leptons, &b_tightMvaBased_leptons);
   tree->SetBranchAddress("tightMvaBased_muons", &tightMvaBased_muons, &b_tightMvaBased_muons);
   tree->SetBranchAddress("tightMvaBased_electrons", &tightMvaBased_electrons, &b_tightMvaBased_electrons);
+  tree->SetBranchAddress("preselected_jets", &preselected_jets, &b_preselected_jets);
+  tree->SetBranchAddress("met", &met, &b_met);
   ///////////////
   
   cout <<"[Info:] You are running minitree code over " << plotName << endl;
@@ -74,6 +82,7 @@ void minitree(int nsel=0, bool silent=0){
   
   // Branches of the output Tree
   double eWeight; 
+  double event_met;
       
   std::vector<double> *ptLepton;
   std::vector<double> *pxLepton;
@@ -86,6 +95,7 @@ void minitree(int nsel=0, bool silent=0){
   TTree* myTree = new TTree("myTree", "   ");
       
   myTree->Branch("eWeight", &eWeight, "eWeight/D");
+  myTree->Branch("event_met", &event_met, "event_met/D");
       
   myTree->Branch("ptLepton","std::vector<double>",&ptLepton);
   myTree->Branch("pxLepton","std::vector<double>",&pxLepton);
@@ -122,6 +132,8 @@ void minitree(int nsel=0, bool silent=0){
     b_tightMvaBased_electrons->GetEntry(tentry);
     b_wgt->GetEntry(tentry);
     b_higgs_decay->GetEntry(tentry);
+    b_preselected_jets->GetEntry(tentry);
+    b_met->GetEntry(tentry);
     
     weight = wgt;
     histo->Fill(0., weight);
@@ -129,9 +141,12 @@ void minitree(int nsel=0, bool silent=0){
     if (nsel == 0 && !higgs_decay) continue;
     histo->Fill(1., weight);
     
+    // two leptons (tight, pt, eta id, all in here)
     if (tightMvaBased_leptons->size() < 2) continue;
     histo->Fill(2., weight);
    
+
+    // Invariant mass cut
     bool inv_mass = true;
     for (unsigned int i = 0; i < tightMvaBased_leptons->size(); i++){
       ttH::Lepton temp_lep = tightMvaBased_leptons->at(i);
@@ -148,12 +163,62 @@ void minitree(int nsel=0, bool silent=0){
     if (!inv_mass) continue;
     histo->Fill(3., weight);
     
+    // Jets, b-tag missing
+    if (preselected_jets->size() < 2) continue;
+    histo->Fill(4., weight);
+    
+    //same-sign selection
+    if (tightMvaBased_leptons->size() !=2) continue;
+    
+    ttH::Lepton lep_0 = tightMvaBased_leptons->at(0);
+    ttH::Lepton lep_1 = tightMvaBased_leptons->at(1);
+    if (lep_0.charge != lep_1.charge) continue;
+    if (preselected_jets->size() < 4) continue;
+   
+    
+    histo->Fill(5., weight);
     
     
+    //Same flavor kill DY
+    bool inv_mass_dy = true;
+    for (unsigned int i = 0; i < tightMvaBased_muons->size(); i++){
+      ttH::Lepton temp_lep = tightMvaBased_muons->at(i);
+      TLorentzVector vlep1(temp_lep.tlv().Px(), temp_lep.tlv().Py(), temp_lep.tlv().Pz(), temp_lep.tlv().E());
+      if (i < tightMvaBased_muons->size()-2){
+	for (unsigned int j = i+1; j < tightMvaBased_muons->size(); j++){
+	  ttH::Lepton temp_lep2 = tightMvaBased_muons->at(j);
+	  TLorentzVector vlep2(temp_lep2.tlv().Px(), temp_lep2.tlv().Py(), temp_lep2.tlv().Pz(), temp_lep2.tlv().E());
+	  TLorentzVector pair = vlep1+vlep2;
+	  if (abs(pair.M() - mz) < 10) inv_mass_dy = false;
+	}
+      }
+    }
+    for (unsigned int i = 0; i < tightMvaBased_electrons->size(); i++){
+      ttH::Lepton temp_lep = tightMvaBased_electrons->at(i);
+      TLorentzVector vlep1(temp_lep.tlv().Px(), temp_lep.tlv().Py(), temp_lep.tlv().Pz(), temp_lep.tlv().E());
+      if (i < tightMvaBased_electrons->size()-2){
+	for (unsigned int j = i+1; j < tightMvaBased_electrons->size(); j++){
+	  ttH::Lepton temp_lep2 = tightMvaBased_electrons->at(j);
+	  TLorentzVector vlep2(temp_lep2.tlv().Px(), temp_lep2.tlv().Py(), temp_lep2.tlv().Pz(), temp_lep2.tlv().E());
+	  TLorentzVector pair = vlep1+vlep2;
+	  if (abs(pair.M() - mz) < 10) inv_mass_dy = false;
+	}
+      }
+    }
+    if (!inv_mass_dy) continue;
+    histo->Fill(6., weight);
+    
+   // if (lep_0.tlv().Pt() < 20 || lep_1.tlv().Pt() < 20) continue;
+   // histo->Fill(7., weight);
+    
+    ttH::MET e_met = met->at(0);
+   // if (e_met.tlv().Pt() < 60) continue;
+   // histo->Fill(8., weight);
     //Filling the Tree (at pre-selection level, leptons and mll)
 		     
 			
     eWeight = weight;
+    event_met = e_met.tlv().Pt();
 		 
     ptLepton = new std::vector<double>; 
     pxLepton = new std::vector<double>; 
@@ -162,12 +227,26 @@ void minitree(int nsel=0, bool silent=0){
     eLepton = new std::vector<double>; 
     qLepton = new std::vector<double>;
 			
-    ptLepton->push_back(10);
-    ptLepton->push_back(20);	
-    // ptLepton->push_back((tightMvaBased_leptons->at(0)).Pt());
-    // ptLepton->push_back((tightMvaBased_leptons->at(1)).Pt());
-		    	
-    myTree->Fill();
+    ptLepton->push_back(lep_0.tlv().Pt());
+    ptLepton->push_back(lep_1.tlv().Pt());
+			
+    pxLepton->push_back(lep_0.tlv().Px());
+    pxLepton->push_back(lep_1.tlv().Px());
+			
+    pyLepton->push_back(lep_0.tlv().Py());
+    pyLepton->push_back(lep_1.tlv().Py());
+			
+    pzLepton->push_back(lep_0.tlv().Pz());
+    pzLepton->push_back(lep_1.tlv().Pz());
+			
+    eLepton->push_back(lep_0.tlv().E());
+    eLepton->push_back(lep_1.tlv().E());
+			
+    qLepton->push_back(lep_0.charge);
+    qLepton->push_back(lep_1.charge);
+    
+   
+     myTree->Fill();
 			
     delete ptLepton;
     delete pxLepton;
@@ -190,6 +269,11 @@ void minitree(int nsel=0, bool silent=0){
       if (i == 2 && nsel == 0) cout << " higgs decay: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 3) cout << " 2 or more tight leptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 4) cout << " mll > 12: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 5) cout << " 2 or more jets: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 6) cout << " SS selection: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      if (i == 7) cout << " SF DY out: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      //if (i == 8) cout << " 20, 20: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
+      //if (i == 9) cout << " MET > 60: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
     }
     cout << "---------------------------------------------------" << endl;
   }
