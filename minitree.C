@@ -72,27 +72,27 @@ void minitree(int nsel=0, bool silent=0){
     std::cout << "[Info:] Minitree to be created: " << newRootFile << std::endl;
   }
   
-   // Branches of the output Tree
-      double eWeight; 
+  // Branches of the output Tree
+  double eWeight; 
       
-      std::vector<double> *ptLepton;
-      std::vector<double> *pxLepton;
-      std::vector<double> *pyLepton;
-      std::vector<double> *pzLepton;
-      std::vector<double> *eLepton;
-      std::vector<double> *qLepton;
+  std::vector<double> *ptLepton;
+  std::vector<double> *pxLepton;
+  std::vector<double> *pyLepton;
+  std::vector<double> *pzLepton;
+  std::vector<double> *eLepton;
+  std::vector<double> *qLepton;
       
-   // Output Tree
-      TTree* myTree = new TTree("myTree", "   ");
+  // Output Tree
+  TTree* myTree = new TTree("myTree", "   ");
       
-      myTree->Branch("eWeight", &eWeight, "eWeight/D");
+  myTree->Branch("eWeight", &eWeight, "eWeight/D");
       
-      myTree->Branch("ptLepton","std::vector<double>",&ptLepton);
-      myTree->Branch("pxLepton","std::vector<double>",&pxLepton);
-      myTree->Branch("pyLepton","std::vector<double>",&pyLepton);
-      myTree->Branch("pzLepton","std::vector<double>",&pzLepton);
-      myTree->Branch("eLepton","std::vector<double>",&eLepton);
-      myTree->Branch("qLepton","std::vector<double>",&qLepton);
+  myTree->Branch("ptLepton","std::vector<double>",&ptLepton);
+  myTree->Branch("pxLepton","std::vector<double>",&pxLepton);
+  myTree->Branch("pyLepton","std::vector<double>",&pyLepton);
+  myTree->Branch("pzLepton","std::vector<double>",&pzLepton);
+  myTree->Branch("eLepton","std::vector<double>",&eLepton);
+  myTree->Branch("qLepton","std::vector<double>",&qLepton);
       
      
   
@@ -137,44 +137,44 @@ void minitree(int nsel=0, bool silent=0){
       ttH::Lepton temp_lep = tightMvaBased_leptons->at(i);
       TLorentzVector vlep1(temp_lep.tlv().Px(), temp_lep.tlv().Py(), temp_lep.tlv().Pz(), temp_lep.tlv().E());
       if (i < tightMvaBased_leptons->size()-2){
-      for (unsigned int j = i+1; j < tightMvaBased_leptons->size(); j++){
-        ttH::Lepton temp_lep2 = tightMvaBased_leptons->at(j);
-        TLorentzVector vlep2(temp_lep2.tlv().Px(), temp_lep2.tlv().Py(), temp_lep2.tlv().Pz(), temp_lep2.tlv().E());
-        TLorentzVector pair = vlep1+vlep2;
-	if (pair.M() < 12) inv_mass = false;
+	for (unsigned int j = i+1; j < tightMvaBased_leptons->size(); j++){
+	  ttH::Lepton temp_lep2 = tightMvaBased_leptons->at(j);
+	  TLorentzVector vlep2(temp_lep2.tlv().Px(), temp_lep2.tlv().Py(), temp_lep2.tlv().Pz(), temp_lep2.tlv().E());
+	  TLorentzVector pair = vlep1+vlep2;
+	  if (pair.M() < 12) inv_mass = false;
+	}
       }
-    }
     }
     if (!inv_mass) continue;
     histo->Fill(3., weight);
     
     
     
-      //Filling the Tree (at pre-selection level, leptons and mll)
+    //Filling the Tree (at pre-selection level, leptons and mll)
 		     
 			
-		      eWeight = weight;
+    eWeight = weight;
 		 
-		      ptLepton = new std::vector<double>; 
-		      pxLepton = new std::vector<double>; 
-		      pyLepton = new std::vector<double>; 
-		      pzLepton = new std::vector<double>; 
-		      eLepton = new std::vector<double>; 
-		      qLepton = new std::vector<double>;
+    ptLepton = new std::vector<double>; 
+    pxLepton = new std::vector<double>; 
+    pyLepton = new std::vector<double>; 
+    pzLepton = new std::vector<double>; 
+    eLepton = new std::vector<double>; 
+    qLepton = new std::vector<double>;
 			
-			ptLepton->push_back(10);
-			ptLepton->push_back(20);	
-		     // ptLepton->push_back((tightMvaBased_leptons->at(0)).Pt());
-		     // ptLepton->push_back((tightMvaBased_leptons->at(1)).Pt());
+    ptLepton->push_back(10);
+    ptLepton->push_back(20);	
+    // ptLepton->push_back((tightMvaBased_leptons->at(0)).Pt());
+    // ptLepton->push_back((tightMvaBased_leptons->at(1)).Pt());
 		    	
-       myTree->Fill();
+    myTree->Fill();
 			
-		      delete ptLepton;
-		      delete pxLepton;
-		      delete pyLepton;
-		      delete pzLepton;
-		      delete eLepton;
-		      delete qLepton;
+    delete ptLepton;
+    delete pxLepton;
+    delete pyLepton;
+    delete pzLepton;
+    delete eLepton;
+    delete qLepton;
    
   }
   
@@ -190,7 +190,7 @@ void minitree(int nsel=0, bool silent=0){
       if (i == 2 && nsel == 0) cout << " higgs decay: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 3) cout << " 2 or more tight leptons: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
       if (i == 4) cout << " mll > 12: " << histo->GetBinContent(i) << " +/- " << histo->GetBinError(i) << endl;
-        }
+    }
     cout << "---------------------------------------------------" << endl;
   }
   
