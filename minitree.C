@@ -9,9 +9,12 @@ float mz = 91.1876;
 
 void minitree(int nsel=0, bool silent=0){
   
+  float x_sec = 1;
+  float lumi = 100000; //pb
+  
   char plotName[300];
   sprintf(plotName,"test");
-  if (nsel == 0) {sprintf(plotName,"ttH125");}
+  if (nsel == 0) {sprintf(plotName,"ttH125"); x_sec = 0.5085;} //lhc xsec
   
   
   char myRootFile[300];
@@ -82,7 +85,12 @@ void minitree(int nsel=0, bool silent=0){
   
   // Branches of the output Tree
   double eWeight; 
+  double rawWeight;
   double event_met;
+  double event_ht;
+  double event_ldmet;
+  double event_promet;
+  double event_metphi;
       
   std::vector<double> *ptLepton;
   std::vector<double> *pxLepton;
@@ -91,11 +99,21 @@ void minitree(int nsel=0, bool silent=0){
   std::vector<double> *eLepton;
   std::vector<double> *qLepton;
       
+  std::vector<double> *ptJet;
+  std::vector<double> *pxJet;
+  std::vector<double> *pyJet;
+  std::vector<double> *pzJet;
+      
   // Output Tree
   TTree* myTree = new TTree("myTree", "   ");
       
+  myTree->Branch("rawWeight", &rawWeight, "rawWeight/D");
   myTree->Branch("eWeight", &eWeight, "eWeight/D");
   myTree->Branch("event_met", &event_met, "event_met/D");
+  myTree->Branch("event_ht", &event_ht, "event_ht/D");
+  myTree->Branch("event_ldmet", &event_ldmet, "event_ldmet/D");
+  myTree->Branch("event_promet", &event_promet, "event_promet/D");
+  myTree->Branch("event_metphi", &event_metphi, "event_metphi/D");
       
   myTree->Branch("ptLepton","std::vector<double>",&ptLepton);
   myTree->Branch("pxLepton","std::vector<double>",&pxLepton);
@@ -104,9 +122,10 @@ void minitree(int nsel=0, bool silent=0){
   myTree->Branch("eLepton","std::vector<double>",&eLepton);
   myTree->Branch("qLepton","std::vector<double>",&qLepton);
       
-     
-  
-
+  myTree->Branch("ptJet","std::vector<double>",&ptJet);
+  myTree->Branch("pxJet","std::vector<double>",&pxJet);
+  myTree->Branch("pyJet","std::vector<double>",&pyJet);
+  myTree->Branch("pzJet","std::vector<double>",&pzJet);
   
   // Histos
   char title[300];
@@ -119,6 +138,9 @@ void minitree(int nsel=0, bool silent=0){
   
   if (!silent) cout << "[Info:] Original sample:  " << totalevents << " events " << endl;
   if (!silent) cout << "[Info:] Number of events in tuple: " << tree->GetEntries() << "(" << tree->GetEntries()*100/totalevents << "%)" << endl;
+  
+  // weight = lumi*x_sec/totalevents;
+
   
   // loop over events 
   //for(int iEvent = 0; iEvent < 100000; iEvent++){
@@ -208,8 +230,8 @@ void minitree(int nsel=0, bool silent=0){
     if (!inv_mass_dy) continue;
     histo->Fill(6., weight);
     
-   // if (lep_0.tlv().Pt() < 20 || lep_1.tlv().Pt() < 20) continue;
-   // histo->Fill(7., weight);
+    if (lep_0.tlv().Pt() < 20 || lep_1.tlv().Pt() < 20) continue;
+    histo->Fill(7., weight);
     
     ttH::MET e_met = met->at(0);
    // if (e_met.tlv().Pt() < 60) continue;
@@ -217,8 +239,10 @@ void minitree(int nsel=0, bool silent=0){
     //Filling the Tree (at pre-selection level, leptons and mll)
 		     
 			
-    eWeight = weight;
+    eWeight = lumi*x_sec*wgt/totalevents;
+    rawWeight = wgt;
     event_met = e_met.tlv().Pt();
+    event_metphi = e_met.tlv().Phi();
 		 
     ptLepton = new std::vector<double>; 
     pxLepton = new std::vector<double>; 
@@ -226,6 +250,11 @@ void minitree(int nsel=0, bool silent=0){
     pzLepton = new std::vector<double>; 
     eLepton = new std::vector<double>; 
     qLepton = new std::vector<double>;
+		 
+    ptJet = new std::vector<double>; 
+    pxJet = new std::vector<double>; 
+    pyJet = new std::vector<double>; 
+    pzJet = new std::vector<double>; 
 			
     ptLepton->push_back(lep_0.tlv().Pt());
     ptLepton->push_back(lep_1.tlv().Pt());
@@ -245,8 +274,28 @@ void minitree(int nsel=0, bool silent=0){
     qLepton->push_back(lep_0.charge);
     qLepton->push_back(lep_1.charge);
     
-   
-     myTree->Fill();
+    TLorentzVector vlep_0(lep_0.tlv().Px(), lep_0.tlv().Py(), lep_0.tlv().Pz(), lep_0.tlv().E());
+    TLorentzVector vlep_1(lep_1.tlv().Px(), lep_1.tlv().Py(), lep_1.tlv().Pz(), lep_1.tlv().E());
+
+    TLorentzVector htvec = vlep_0+vlep_1;
+    
+    for (unsigned int i=0; i <preselected_jets->size(); i++){
+      ttH::Jet temp_jet = preselected_jets->at(i);
+      TLorentzVector vjet(temp_jet.tlv().Px(), temp_jet.tlv().Py(), temp_jet.tlv().Pz(), temp_jet.tlv().E());
+      htvec += vjet;
+      ptJet->push_back(temp_jet.tlv().Pt());
+      pxJet->push_back(temp_jet.tlv().Px());
+      pyJet->push_back(temp_jet.tlv().Py());
+      pzJet->push_back(temp_jet.tlv().Pz());
+    } 
+    
+    event_ht = htvec.Pt();
+    event_ldmet = 0.00397*(e_met.tlv().Pt()) + 0.00265*(htvec.Pt());
+    event_promet = e_met.tlv().Pt();
+    float phi_closest = TMath::Min((abs(e_met.tlv().Phi()-lep_0.tlv().Phi())),(abs(e_met.tlv().Phi()-lep_1.tlv().Phi())));
+    if (phi_closest < 1.57079632679) event_promet = e_met.tlv().Pt()*sin(phi_closest);
+    
+    myTree->Fill();
 			
     delete ptLepton;
     delete pxLepton;
@@ -254,6 +303,11 @@ void minitree(int nsel=0, bool silent=0){
     delete pzLepton;
     delete eLepton;
     delete qLepton;
+    
+    delete ptJet;
+    delete pxJet;
+    delete pyJet;
+    delete pzJet;
    
   }
   
