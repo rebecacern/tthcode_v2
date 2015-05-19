@@ -15,7 +15,8 @@ void minitree(int nsel=0, bool silent=0){
   char plotName[300];
   sprintf(plotName,"test");
   if (nsel == 0) {sprintf(plotName,"ttH125"); x_sec = 0.5085;} //lhc xsec
-  
+  if (nsel == 1) {sprintf(plotName,"zjets"); x_sec = 1;} 
+
   
   char myRootFile[300];
   sprintf(myRootFile,"../tuples/%s.root", plotName);
